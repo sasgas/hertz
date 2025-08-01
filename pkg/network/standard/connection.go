@@ -43,7 +43,7 @@ const (
 )
 
 type Conn struct {
-	c            net.Conn
+	C            net.Conn
 	inputBuffer  *linkBuffer
 	outputBuffer *linkBuffer
 	caches       [][]byte // buf allocated by Next when cross-package, which should be freed when release
@@ -65,16 +65,16 @@ func (c *Conn) ToHertzError(err error) error {
 
 func (c *Conn) SetWriteTimeout(t time.Duration) error {
 	if t <= 0 {
-		return c.c.SetWriteDeadline(time.Time{})
+		return c.C.SetWriteDeadline(time.Time{})
 	}
-	return c.c.SetWriteDeadline(time.Now().Add(t))
+	return c.C.SetWriteDeadline(time.Now().Add(t))
 }
 
 func (c *Conn) SetReadTimeout(t time.Duration) error {
 	if t <= 0 {
-		return c.c.SetReadDeadline(time.Time{})
+		return c.C.SetReadDeadline(time.Time{})
 	}
-	return c.c.SetReadDeadline(time.Now().Add(t))
+	return c.C.SetReadDeadline(time.Now().Add(t))
 }
 
 type TLSConn struct {
@@ -110,7 +110,7 @@ func (c *Conn) Read(b []byte) (l int, err error) {
 	}
 
 	// Call Read() directly to fill buffer b
-	return c.c.Read(b)
+	return c.C.Read(b)
 }
 
 // Write calls Write syscall directly to send data.
@@ -119,7 +119,7 @@ func (c *Conn) Write(b []byte) (n int, err error) {
 	if err = c.Flush(); err != nil {
 		return
 	}
-	return c.c.Write(b)
+	return c.C.Write(b)
 }
 
 // ReadFrom implements io.ReaderFrom. If the underlying writer
@@ -130,7 +130,7 @@ func (c *Conn) ReadFrom(r io.Reader) (n int64, err error) {
 		return
 	}
 
-	if w, ok := c.c.(io.ReaderFrom); ok {
+	if w, ok := c.C.(io.ReaderFrom); ok {
 		n, err = w.ReadFrom(r)
 		return
 	}
@@ -185,37 +185,37 @@ func (c *Conn) ReadFrom(r io.Reader) (n int64, err error) {
 
 // Close closes the connection
 func (c *Conn) Close() error {
-	return c.c.Close()
+	return c.C.Close()
 }
 
 // CloseNoResetBuffer closes the connection without reset buffer.
 func (c *Conn) CloseNoResetBuffer() error {
-	return c.c.Close()
+	return c.C.Close()
 }
 
 // LocalAddr returns the local address of the connection.
 func (c *Conn) LocalAddr() net.Addr {
-	return c.c.LocalAddr()
+	return c.C.LocalAddr()
 }
 
 // RemoteAddr returns the remote address of the connection.
 func (c *Conn) RemoteAddr() net.Addr {
-	return c.c.RemoteAddr()
+	return c.C.RemoteAddr()
 }
 
 // SetDeadline sets the connection deadline.
 func (c *Conn) SetDeadline(t time.Time) error {
-	return c.c.SetDeadline(t)
+	return c.C.SetDeadline(t)
 }
 
 // SetReadDeadline sets the read deadline of the connection.
 func (c *Conn) SetReadDeadline(t time.Time) error {
-	return c.c.SetReadDeadline(t)
+	return c.C.SetReadDeadline(t)
 }
 
 // SetWriteDeadline sets the write deadline of the connection.
 func (c *Conn) SetWriteDeadline(t time.Time) error {
-	return c.c.SetWriteDeadline(t)
+	return c.C.SetWriteDeadline(t)
 }
 
 func (c *Conn) releaseCaches() {
@@ -404,7 +404,7 @@ func (c *Conn) fill(i int) (err error) {
 
 	// Circulate reading data so that the node holds enough data
 	for i > 0 {
-		n, err := c.c.Read(c.inputBuffer.write.buf[node.malloc:])
+		n, err := c.C.Read(c.inputBuffer.write.buf[node.malloc:])
 		if n > 0 {
 			node.malloc += n
 			c.inputBuffer.len += n
@@ -538,7 +538,7 @@ func (c *Conn) Flush() (err error) {
 	}
 
 	for {
-		n, err := c.c.Write(c.outputBuffer.head.buf[c.outputBuffer.head.off:c.outputBuffer.head.malloc])
+		n, err := c.C.Write(c.outputBuffer.head.buf[c.outputBuffer.head.off:c.outputBuffer.head.malloc])
 		if err != nil {
 			return err
 		}
@@ -574,11 +574,11 @@ func (c *Conn) readErr() error {
 }
 
 func (c *TLSConn) Handshake() error {
-	return c.c.(network.ConnTLSer).Handshake()
+	return c.C.(network.ConnTLSer).Handshake()
 }
 
 func (c *TLSConn) ConnectionState() tls.ConnectionState {
-	return c.c.(network.ConnTLSer).ConnectionState()
+	return c.C.(network.ConnTLSer).ConnectionState()
 }
 
 func newConn(c net.Conn, size int) network.Conn {
@@ -603,7 +603,7 @@ func newConn(c net.Conn, size int) network.Conn {
 	runtime.SetFinalizer(outputBuffer, (*linkBuffer).release)
 
 	return &Conn{
-		c:            c,
+		C:            c,
 		inputBuffer:  inputBuffer,
 		outputBuffer: outputBuffer,
 		maxSize:      maxSize,
@@ -633,7 +633,7 @@ func newTLSConn(c net.Conn, size int) network.Conn {
 
 	return &TLSConn{
 		Conn{
-			c:            c,
+			C:            c,
 			inputBuffer:  inputBuffer,
 			outputBuffer: outputBuffer,
 			maxSize:      maxSize,
